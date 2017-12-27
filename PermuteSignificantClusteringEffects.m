@@ -1,4 +1,4 @@
-function [pvalues_modchisquare,observed_chisquare,observed_count,observed_ratio,permuted_chisquare,permuted_count,permuted_ratio] = PermuteSignificantClusteringEffects(msig,modules,npermutations,pvalr)
+function [pvalues_modchisquare,observed_chisquare,observed_count,observed_ratio,permuted_chisquare,permuted_count,permuted_ratio] = PermuteSignificantClusteringEffects(msig,modules,npermutations,pvalr,varargin)
 %PermuteSignificantClusteringEffects will take a binarized matrix of signifiance
 %tests (1 - significant, 0 - not significant) and determine whether those
 %tests occur within/between specific communities (modules). A null model is
@@ -28,6 +28,14 @@ function [pvalues_modchisquare,observed_chisquare,observed_count,observed_ratio,
 %   test. Typically this is set to 0.05/N, where N is the number of
 %   matrices that are being clustered.
 %
+%   The optional inputs below may be put in any order. Each optional input
+%   must be specified as a pair of inputs (e.g. if you want to include a
+%   matrix of valid comparisons you need to add "
+%   'ValidMatrix',validmatname)". Below are the current optional inputs:
+%
+%   *ValidMatrix* -- a logical or binarized matrix of the same size as msig
+%   representing invalid (0) and valid (1) comparisons. Used to exclude
+%   cells which cannot be measured in the first place.
 %
 %OUTPUTS:
 %
@@ -82,6 +90,23 @@ function [pvalues_modchisquare,observed_chisquare,observed_count,observed_ratio,
 %   Initialized but not documented by Eric Feczko
 %
 %
+restrict_modules = 0;
+for i = 1:size(varargin,2)
+    if ischar(varargin{i})
+        switch(varargin{i})
+            case('ValidMatrix')
+                restrict_modules = 1;
+                validmat = varargin{i+1};
+        end
+    end
+end
+%if restricting modules, eliminate any significant effects found in these
+%regions
+if restrict_modules
+    msig = msig.*validmat;
+else
+    validmat = logical(ones(size(msig,1),size(msig,2)));
+end
 number_of_nodes = size(msig,1);
 moduleval = unique(modules);
 if moduleval(1) == 0
@@ -95,13 +120,15 @@ else
     nassignments = 0;
 end
 if nassignments == 0
-    [observed_chisquare observed_count observed_ratio] = CountSignificantEffectsByModules(msig,modules);
+    [observed_chisquare observed_count observed_ratio] = CountSignificantEffectsByModules(msig,modules,'ValidMatrix',validmat);
     observed_sigs = zeros(((number_of_nodes^2) - number_of_nodes)/2,1);
+    observed_valids = ones(((number_of_nodes^2) - number_of_nodes)/2,1);
     count = 0;
     for i = 1:number_of_nodes-1
         for j = i+1:number_of_nodes
             count = count + 1;
             observed_sigs(count) = msig(i,j);
+            observed_valids(count) = validmat(i,j);
         end
     end
     number_of_sigs = size(observed_sigs,1);
@@ -113,16 +140,19 @@ if nassignments == 0
         rng('shuffle'); %regenerate the random number sequence
         R = randperm(number_of_sigs); 
         temp_permute_sigs = observed_sigs(R);
+        temp_permute_valids = observed_valids(R);
         temp_permute_mat = zeros(number_of_nodes,number_of_nodes);
         count = 0;
         for k = 1:number_of_nodes-1
             for j = k+1:number_of_nodes
                 count = count+1;
                 temp_permute_mat(k,j) = temp_permute_sigs(count);
+                temp_validmat(k,j) = temp_permute_valids(count);
                 temp_permute_mat(j,k) = temp_permute_sigs(count);
+                temp_validmat(j,k) = temp_permute_valids(count);
             end
         end
-        [temp_chisquare temp_count temp_ratio] = CountSignificantEffectsByModules(temp_permute_mat,modules);
+        [temp_chisquare temp_count temp_ratio] = CountSignificantEffectsByModules(temp_permute_mat,modules,'ValidMatrix',temp_validmat);
         permuted_chisquare(:,:,i) = temp_chisquare;
         permuted_count(:,:,:,i) = temp_count;
         permuted_ratio(:,:,:,i) = temp_ratio;

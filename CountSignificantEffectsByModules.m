@@ -1,4 +1,4 @@
-function [module_mat_chisquare module_mat_count module_mat_ratio module_mat_pvalue] = CountSignificantEffectsByModules(m,modules,df,pvalr)
+function [module_mat_chisquare, module_mat_count, module_mat_ratio, module_mat_pvalue] = CountSignificantEffectsByModules(m,modules,varargin)
 %CountSignificantEffectsByModules will take a binarized matrix of signifiance
 %tests (1 - significant, 0 - not significant) and determine whether those
 %tests occur within/between specific communities (modules).
@@ -25,6 +25,19 @@ function [module_mat_chisquare module_mat_count module_mat_ratio module_mat_pval
 %   test. Typically this is set to 0.05/N, where N is the number of
 %   matrices that are being clustered.
 %
+%   The optional inputs below may be put in any order. Each optional input
+%   must be specified as a pair of inputs (e.g. if you want to include a
+%   matrix of valid comparisons you need to add "
+%   'ValidMatrix',validmatname)". Below are the current optional inputs:
+%
+%   *ValidMatrix* -- a logical or binarized matrix of the same size as msig
+%   representing invalid (0) and valid (1) comparisons. Used to exclude
+%   cells which cannot be measured in the first place.
+%
+%   *CalculatePValue* -- If specified, will calculate a p value from the 
+%   chi-squared CDF. Requires two additional inputs. The first input is
+%   a number representing the degrees of freedom, and the second is a
+%   number representing the FWE threshold assessed via FDR.
 %
 %OUTPUTS:
 %
@@ -64,6 +77,22 @@ function [module_mat_chisquare module_mat_count module_mat_ratio module_mat_pval
 %   Initialized and Documented by Eric Feczko
 %
 %
+mh = size(m,1);
+mw = size(m,2);
+validmat = logical(ones(mh,mw));
+calculate_p_value = 0;
+for i = 1:size(varargin,2)
+    if ischar(varargin{i})
+        switch(varargin{i})
+            case('ValidMatrix')
+                validmat = varargin{i+1};
+            case('CalculatePValue')
+                calculate_p_value = 1;
+                df = varargin{i+1};
+                pvalr = varargin{i+2};
+        end
+    end
+end
 moduleval = unique(modules);
 tempsize = size(moduleval);
 if moduleval(1) == 0
@@ -74,8 +103,6 @@ end
 module_mat_count = zeros(nummods,nummods,4);
 module_mat_chisquare = zeros(nummods,nummods);
 module_mat_ratio = zeros(nummods,nummods,2);
-mh = size(m,1);
-mw = size(m,2);
 for i = 1:nummods
     for j = 1:nummods
         vectorstep = 0;
@@ -83,18 +110,22 @@ for i = 1:nummods
             for l = 1:mw
                 if moduleval(1) == 0
                     if modules(k) == moduleval(i+1) && modules(l) == moduleval(j+1)
-                        if m(k,l) == 0
-                            module_mat_count(i,j,1) = module_mat_count(i,j,1) + 1;
-                        elseif m(k,l) == 1
-                            module_mat_count(i,j,2) = module_mat_count(i,j,2) + 1;
+                        if validmat(k,l)
+                            if m(k,l) == 0
+                                module_mat_count(i,j,1) = module_mat_count(i,j,1) + 1;
+                            elseif m(k,l) == 1
+                                module_mat_count(i,j,2) = module_mat_count(i,j,2) + 1;
+                            end
                         end
                     end
                 else
                     if modules(k) == moduleval(i) && modules(l) == moduleval(j)
-                        if m(k,l) == 0
-                            module_mat_count(i,j,1) = module_mat_count(i,j,1) + 1;
-                        elseif m(k,l) == 1
-                            module_mat_count(i,j,2) = module_mat_count(i,j,2) + 1;
+                        if validmat(k,l)
+                            if m(k,l) == 0
+                                module_mat_count(i,j,1) = module_mat_count(i,j,1) + 1;
+                            elseif m(k,l) == 1
+                                module_mat_count(i,j,2) = module_mat_count(i,j,2) + 1;
+                            end
                         end
                     end
                 end
@@ -122,7 +153,7 @@ for i = 1:nummods
         module_mat_chisquare(i,j) = chi2(observed_values,expected_values);
     end
 end
-if nargin > 2
-module_mat_pvalue = CalculateChisquarePvalues(module_mat_chisquare,module_mat_count,df,pvalr);
+if calculate_p_value
+    module_mat_pvalue = CalculateChisquarePvalues(module_mat_chisquare,module_mat_count,df,pvalr);
 end
 end
