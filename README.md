@@ -1,4 +1,5 @@
 ##Community Chisquared Analysis (CCA) MATLAB Package##
+
 ###Created by Eric Feczko 4/30/14###
 
 CCA comprises a set of matlab scripts designed to perform an exploratory
