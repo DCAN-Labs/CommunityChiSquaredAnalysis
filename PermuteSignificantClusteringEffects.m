@@ -138,9 +138,15 @@ if nassignments == 0
     for i = 1:npermutations
         fprintf('%s %i\n','permuting assignments for the groups: permutation #',i);
         rng('shuffle'); %regenerate the random number sequence
-        R = randperm(number_of_sigs); 
-        temp_permute_sigs = observed_sigs(R);
-        temp_permute_valids = observed_valids(R);
+        appropriate_shuffle = 0;
+        while appropriate_shuffle == 0
+            R = randperm(number_of_sigs); 
+            temp_permute_sigs = observed_sigs(R);
+            if size(find((temp_permute_sigs - observed_valids) == 1),1) == 0
+                temp_permute_valids = observed_valids(R);
+                appropriate_shuffle = 1;
+            end
+        end
         temp_permute_mat = zeros(number_of_nodes,number_of_nodes);
         count = 0;
         for k = 1:number_of_nodes-1
