@@ -138,27 +138,22 @@ if nassignments == 0
     for i = 1:npermutations
         fprintf('%s %i\n','permuting assignments for the groups: permutation #',i);
         rng('shuffle'); %regenerate the random number sequence
-        appropriate_shuffle = 0;
-        while appropriate_shuffle == 0
-            R = randperm(number_of_sigs); 
-            temp_permute_sigs = observed_sigs(R);
-            if size(find((temp_permute_sigs - observed_valids) == 1),1) == 0
-                temp_permute_valids = observed_valids(R);
-                appropriate_shuffle = 1;
-            end
-        end
+        temp_permute_sigs = zeros(number_of_sigs,1);
+        valid_shuffle = find(observed_valids == 1);
+        R = randperm(length(valid_shuffle));
+        valids_only = observed_sigs(valid_shuffle);
+        valids_shuffled = valids_only(R);
+        temp_permute_sigs(valid_shuffle) = valids_shuffled;
         temp_permute_mat = zeros(number_of_nodes,number_of_nodes);
         count = 0;
         for k = 1:number_of_nodes-1
             for j = k+1:number_of_nodes
                 count = count+1;
                 temp_permute_mat(k,j) = temp_permute_sigs(count);
-                temp_validmat(k,j) = temp_permute_valids(count);
                 temp_permute_mat(j,k) = temp_permute_sigs(count);
-                temp_validmat(j,k) = temp_permute_valids(count);
             end
         end
-        [temp_chisquare temp_count temp_ratio] = CountSignificantEffectsByModules(temp_permute_mat,modules,'ValidMatrix',temp_validmat);
+        [temp_chisquare temp_count temp_ratio] = CountSignificantEffectsByModules(temp_permute_mat,modules,'ValidMatrix',validmat);
         permuted_chisquare(:,:,i) = temp_chisquare;
         permuted_count(:,:,:,i) = temp_count;
         permuted_ratio(:,:,:,i) = temp_ratio;
