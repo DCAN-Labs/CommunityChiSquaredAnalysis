@@ -1,4 +1,4 @@
-function [observed_marginal_mean,observed_standard_error] = ProduceMarginalMeansFromChiSquared(msig,modules,pvalues_modchisquare,varargin)
+function [observed_marginal_mean,observed_standard_deviation,observed_standard_error,observed_lowest_percentile,observed_lower_percentile,observed_median_percentile,observed_upper_percentile,observed_highest_percentile] = ProduceMarginalMeansFromChiSquared(msig,modules,pvalues_modchisquare,varargin)
 %ProduceMarginalMeansFromChiSquared will take the output from the
 %chi-squared test and produce estimated marginal means and standard error
 %for modules showing significant clusters
@@ -67,6 +67,12 @@ end
 ncommunities = length(unique(modules));
 observed_marginal_mean = nan(ncommunities,ncommunities,ngroups);
 observed_standard_error = observed_marginal_mean;
+observed_standard_deviation = observed_marginal_mean;
+observed_highest_percentile = observed_marginal_mean;
+observed_lowest_percentile = observed_marginal_mean;
+observed_lower_percentile = observed_marginal_mean;
+observed_upper_percentile = observed_marginal_mean;
+observed_median_percentile = observed_marginal_mean;
 %cycle through communities to check for significant chi-squared findings,
 for i = 1:ncommunities
     for j = i:ncommunities
@@ -89,9 +95,22 @@ for i = 1:ncommunities
                     index = size(subject_adj_vector,1)+1;
                 end
                 observed_marginal_mean(i,j,g) = mean(subject_adj_vector,'omitnan');
+                observed_standard_deviation(i,j,g) = std(subject_adj_vector,'omitnan');
                 observed_standard_error(i,j,g) = std(subject_adj_vector,'omitnan')/sqrt(size(subject_adj_vector,1));
+                quantiles_temp = prctile(subject_adj_vector,[10; 25; 50 ;75; 90]);
+                observed_lowest_percentile(i,j,g) = quantiles_temp(1,1);
+                observed_lower_percentile(i,j,g) = quantiles_temp(2,1);
+                observed_median_percentile(i,j,g) = quantiles_temp(3,1);
+                observed_upper_percentile(i,j,g) = quantiles_temp(4,1);
+                observed_highest_percentile(i,j,g) = quantiles_temp(5,1);
                 observed_marginal_mean(j,i,g) = observed_marginal_mean(i,j,g);
+                observed_standard_deviation(j,i,g) = observed_standard_deviation(i,j,g);
                 observed_standard_error(j,i,g) = observed_standard_error(i,j,g);
+                observed_lowest_percentile(j,i,g) = observed_lowest_percentile(i,j,g);
+                observed_lower_percentile(j,i,g) = observed_lower_percentile(i,j,g);
+                observed_median_percentile(j,i,g) = observed_median_percentile(j,i,g);
+                observed_upper_percentile(j,i,g) = observed_upper_percentile(i,j,g);
+                observed_highest_percentile(j,i,g) = observed_highest_percentile(i,j,g);                   
                 clear subject_adj_vector
             end
         end
