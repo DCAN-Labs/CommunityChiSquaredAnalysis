@@ -77,10 +77,17 @@ function [module_mat_chisquare, module_mat_count, module_mat_ratio, module_mat_p
 %   Initialized and Documented by Eric Feczko
 %
 %
+if ischar(m)
+    m = dlmread(m);
+end
+if ischar(modules)
+    modules = dlmread(modules);
+end
 mh = size(m,1);
 mw = size(m,2);
 validmat = logical(ones(mh,mw));
 calculate_p_value = 0;
+module_mat_pvalue = NaN;
 for i = 1:size(varargin,2)
     if ischar(varargin{i})
         switch(varargin{i})
@@ -90,6 +97,9 @@ for i = 1:size(varargin,2)
                 calculate_p_value = 1;
                 df = varargin{i+1};
                 pvalr = varargin{i+2};
+            case('ExportText')
+                export_text = 1;
+                export_filename = varargin{i+1};
         end
     end
 end
@@ -152,6 +162,9 @@ for i = 1:nummods
         expected_values(1,2) = module_mat_count(i,j,4);
         module_mat_chisquare(i,j) = chi2(observed_values,expected_values);
     end
+end
+if export_text
+    dlmwrite(export_filename,module_mat_chisquare);
 end
 if calculate_p_value
     module_mat_pvalue = CalculateChisquarePvalues(module_mat_chisquare,module_mat_count,df,pvalr);
