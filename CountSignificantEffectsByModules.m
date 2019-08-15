@@ -88,6 +88,7 @@ mw = size(m,2);
 validmat = logical(ones(mh,mw));
 calculate_p_value = 0;
 module_mat_pvalue = NaN;
+export_text = 0;
 for i = 1:size(varargin,2)
     if ischar(varargin{i})
         switch(varargin{i})
